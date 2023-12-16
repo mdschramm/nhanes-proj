@@ -84,4 +84,3 @@ common_columns = list(columns_df1 & columns_df2 & columns_df3)
 NHANES_13_14 = NHANES_13_14[common_columns]
 NHANES_15_16 = NHANES_15_16[common_columns]
 NHANES_17_18 = NHANES_17_18[common_columns]
-print(NHANES_17_18.shape)

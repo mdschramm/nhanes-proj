@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from dataload import NHANES_13_14, NHANES_15_16, NHANES_17_18
 
 from sklearn.preprocessing import FunctionTransformer
@@ -14,11 +15,32 @@ assert (len(NHANES_13_14.columns) == len(NHANES_17_18.columns))
 refused_values = [7, 77, 777, 7777, 77777, 777777]
 idk_values = [9, 99, 999, 9999, 99999, 999999]
 
-missing_values = refused_values + idk_values + [np.nan, '']
+missing_values = ['', np.nan]
 
 
 def preprocess(df):
-    return df.replace(missing_values, np.nan)
+    df = df.replace(missing_values, -1)
+
+    refused_magic_num, idk_magic_num = (
+        np.random.uniform(), np.random.uniform())
+    df = df.replace(refused_values, refused_magic_num)
+    df = df.replace(idk_values, idk_magic_num)
+
+    refused_idk_encoder = ColumnTransformer(
+        [('refused', MissingIndicator(
+            missing_values=refused_magic_num, features='all'), df.columns),
+         ('idk', MissingIndicator(
+             missing_values=idk_magic_num, features='all'), df.columns)
+         ]
+    )
+    union = FeatureUnion([
+        ('existing_data', 'passthrough'),
+        ('refused_idk_encoder', refused_idk_encoder),
+    ])
+
+    # now need to impute magic numbers with something
+
+    return union.fit_transform(df)
 
 
 processed_data = preprocess(NHANES_13_14)
