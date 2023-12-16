@@ -80,7 +80,8 @@ columns_df1 = set(NHANES_13_14.columns)
 columns_df2 = set(NHANES_15_16.columns)
 columns_df3 = set(NHANES_17_18.columns)
 
-common_columns = columns_df1 & columns_df2 & columns_df3
-NHANES_13_14 = NHANES_13_14[columns_df1.intersection(common_columns)]
-NHANES_15_16 = NHANES_15_16[columns_df2.intersection(common_columns)]
-NHANES_17_18 = NHANES_17_18[columns_df3.intersection(common_columns)]
+common_columns = list(columns_df1 & columns_df2 & columns_df3)
+NHANES_13_14 = NHANES_13_14[common_columns]
+NHANES_15_16 = NHANES_15_16[common_columns]
+NHANES_17_18 = NHANES_17_18[common_columns]
+print(NHANES_17_18.shape)
