@@ -22,6 +22,7 @@ def missing_indicators(df):
     df = df.replace(refused_values, refused_magic_num)
     df = df.replace(idk_values, idk_magic_num)
     df = df.replace(np.nan, missing_magic_num)
+    print(df['SEQN'])
 
     return df, ColumnTransformer(
         [
@@ -33,11 +34,12 @@ def missing_indicators(df):
              missing_values=idk_magic_num, features='all'), df.columns),
 
         ]
-    )
+    ), refused_magic_num, idk_magic_num, missing_magic_num
 
 
 def preprocess(df):
-    new_df, missing_transformer = missing_indicators(df)
+    new_df, missing_transformer, refused_magic_num, idk_magic_num, missing_magic_num = missing_indicators(
+        df)
     union = FeatureUnion([
         ('existing_data', 'passthrough'),
         ('missing_indicators', missing_transformer),
@@ -49,4 +51,4 @@ def preprocess(df):
 
 
 processed_data = preprocess(NHANES_13_14)
-print(processed_data.shape)
+print(processed_data[:2])
