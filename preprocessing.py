@@ -4,7 +4,7 @@ from dataload import NHANES_13_14, NHANES_15_16, NHANES_17_18
 
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer, MissingIndicator
 
 
@@ -16,8 +16,6 @@ REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (
     np.random.uniform(), np.random.uniform(), np.random.uniform())
 
 # Adds indicators for all refused, idk, and missing columns
-print('REFUSED_MAGIC_NUM', REFUSED_MAGIC_NUM, 'IDK_MAGIC_NUM',
-      IDK_MAGIC_NUM, 'MISSING_MAGIC_NUM', MISSING_MAGIC_NUM)
 
 
 def missing_indicator_transformer(df):
@@ -59,10 +57,18 @@ class ColumnFilterTransfomer():
 
         print('num columns to remove:', len(remove_cols))
         X = np.delete(X, remove_cols, axis=1)
+        print(X.dtype)
         return X
 
     def fit(self, df, y=None):
         return self
+
+
+def impute():
+    return ColumnTransformer([
+        ('impute_missing', SimpleImputer(strategy='mean', missing_values=MISSING_MAGIC_NUM),
+         make_column_selector(dtype_include=np.number))
+    ])
 
 
 def process_data(df):
@@ -79,7 +85,8 @@ def process_data(df):
                     df)),
             ])),
 
-            ('drop_underfilled_columns', ColumnFilterTransfomer())
+            ('drop_underfilled_columns', ColumnFilterTransfomer()),
+            # ('impute', impute())
         ]
     )
     res = process_pipe.fit_transform(df)
