@@ -4,7 +4,7 @@ from dataload import NHANES_13_14, NHANES_15_16, NHANES_17_18
 
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer, MissingIndicator
 
 
@@ -57,18 +57,49 @@ class ColumnFilterTransfomer():
 
         print('num columns to remove:', len(remove_cols))
         X = np.delete(X, remove_cols, axis=1)
-        print(X.dtype)
         return X
 
     def fit(self, df, y=None):
         return self
 
 
+def all_selector(X):
+    return list(range(X.shape[1]))
+
+
 def impute():
-    return ColumnTransformer([
-        ('impute_missing', SimpleImputer(strategy='mean', missing_values=MISSING_MAGIC_NUM),
-         make_column_selector(dtype_include=np.number))
+    return Pipeline([
+        ('nan_replace', ColumnTransformer([
+            ('impute_refused', SimpleImputer(strategy='constant', fill_value=-5, missing_values=REFUSED_MAGIC_NUM),
+             all_selector),
+            ('impute_idk', SimpleImputer(strategy='constant', fill_value=-5, missing_values=IDK_MAGIC_NUM),
+             all_selector),
+            ('impute_missing', SimpleImputer(strategy='constant', fill_value=-5, missing_values=MISSING_MAGIC_NUM),
+             all_selector),
+        ])),
+        ('imputer', ColumnTransformer([('impute', SimpleImputer(
+            strategy='mean', missing_values=-5), all_selector)]))
+
     ])
+
+
+def impute_refused_idk_workaround():
+    unique_val = np.random.uniform()
+    return Pipeline(
+        [
+            # replace all the magic numbers with single magic number
+            ('nan_refused', SimpleImputer(strategy='constant',
+             fill_value=unique_val, missing_values=REFUSED_MAGIC_NUM)),
+            ('nan_idk', SimpleImputer(strategy='constant',
+             fill_value=unique_val, missing_values=IDK_MAGIC_NUM)),
+            ('nan_missing', SimpleImputer(strategy='constant',
+                                          fill_value=unique_val, missing_values=MISSING_MAGIC_NUM)),
+            # replace unique value with nan so it can be imputed all at once
+            ('nan_11', SimpleImputer(strategy='constant',
+                                     fill_value=np.nan, missing_values=unique_val)),
+            ('impute', SimpleImputer(strategy='mean', missing_values=np.nan))
+        ]
+    )
 
 
 def process_data(df):
@@ -86,7 +117,7 @@ def process_data(df):
             ])),
 
             ('drop_underfilled_columns', ColumnFilterTransfomer()),
-            # ('impute', impute())
+            ('average_impute_magic_numbers', impute_refused_idk_workaround())
         ]
     )
     res = process_pipe.fit_transform(df)
@@ -94,4 +125,9 @@ def process_data(df):
 
 
 res = process_data(NHANES_13_14)
+print(MISSING_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
+print(REFUSED_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
+print(IDK_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
 print(res.shape)
+
+# print(res[:10])
