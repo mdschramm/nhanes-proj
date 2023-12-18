@@ -8,47 +8,53 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer, MissingIndicator
 
 
-print(NHANES_13_14.shape)
 assert (len(NHANES_13_14.columns) == len(NHANES_15_16.columns))
 assert (len(NHANES_13_14.columns) == len(NHANES_17_18.columns))
 
 
+REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (
+    np.random.uniform(), np.random.uniform(), np.random.uniform())
+
 # Adds indicators for all refused, idk, and missing columns
-def missing_indicators(df):
+
+
+def missing_indicator_transformer(df):
     refused_values = [7, 77, 777, 7777, 77777, 777777]
     idk_values = [9, 99, 999, 9999, 99999, 999999]
-    refused_magic_num, idk_magic_num, missing_magic_num = (
-        np.random.uniform(), np.random.uniform(), np.random.uniform())
-    df = df.replace(refused_values, refused_magic_num)
-    df = df.replace(idk_values, idk_magic_num)
-    df = df.replace(np.nan, missing_magic_num)
+
+    df.replace(refused_values, REFUSED_MAGIC_NUM, inplace=True)
+    df.replace(idk_values, IDK_MAGIC_NUM, inplace=True)
+    df.replace(np.nan, MISSING_MAGIC_NUM, inplace=True)
     print(df['SEQN'])
 
-    return df, ColumnTransformer(
+    return ColumnTransformer(
         [
             ('missing', MissingIndicator(
-                missing_values=missing_magic_num, features='all'), df.columns),
+                missing_values=MISSING_MAGIC_NUM, features='all'), df.columns),
             ('refused', MissingIndicator(
-                missing_values=refused_magic_num, features='all'), df.columns),
+                missing_values=REFUSED_MAGIC_NUM, features='all'), df.columns),
             ('idk', MissingIndicator(
-             missing_values=idk_magic_num, features='all'), df.columns),
-
+             missing_values=IDK_MAGIC_NUM, features='all'), df.columns),
         ]
-    ), refused_magic_num, idk_magic_num, missing_magic_num
+    )
 
 
-def preprocess(df):
-    new_df, missing_transformer, refused_magic_num, idk_magic_num, missing_magic_num = missing_indicators(
-        df)
-    union = FeatureUnion([
-        ('existing_data', 'passthrough'),
-        ('missing_indicators', missing_transformer),
-    ])
+def process_data(df):
+    process_pipe = Pipeline(
+        [
+            # Adds missing indicators for refused, idk, and missing,
+            # replaces each of those value types with a magic number for later processing
+            ('missing_indicators', FeatureUnion([
+                ('existing_data', 'passthrough'),
+                ('missing_indicators', missing_indicator_transformer(
+                    df)),
+            ]))
+        ]
+    )
+    res = process_pipe.fit_transform(df)
+    return res
 
-    # now need to impute magic numbers with something
 
-    return union.fit_transform(new_df)
-
-
-processed_data = preprocess(NHANES_13_14)
-print(processed_data[:2])
+print(NHANES_13_14.shape)
+res = process_data(NHANES_13_14)
+print(res.shape)
