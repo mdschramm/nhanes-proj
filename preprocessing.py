@@ -1,15 +1,9 @@
 import numpy as np
 import pandas as pd
-from dataload import NHANES_13_14, NHANES_15_16, NHANES_17_18
-
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer, MissingIndicator
-
-
-assert (len(NHANES_13_14.columns) == len(NHANES_15_16.columns))
-assert (len(NHANES_13_14.columns) == len(NHANES_17_18.columns))
 
 
 REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (
@@ -63,27 +57,10 @@ class ColumnFilterTransfomer():
         return self
 
 
-def all_selector(X):
-    return list(range(X.shape[1]))
+'''Imputes magic numbers assigned to the refused, idk, and missing columns'''
 
 
-def impute():
-    return Pipeline([
-        ('nan_replace', ColumnTransformer([
-            ('impute_refused', SimpleImputer(strategy='constant', fill_value=-5, missing_values=REFUSED_MAGIC_NUM),
-             all_selector),
-            ('impute_idk', SimpleImputer(strategy='constant', fill_value=-5, missing_values=IDK_MAGIC_NUM),
-             all_selector),
-            ('impute_missing', SimpleImputer(strategy='constant', fill_value=-5, missing_values=MISSING_MAGIC_NUM),
-             all_selector),
-        ])),
-        ('imputer', ColumnTransformer([('impute', SimpleImputer(
-            strategy='mean', missing_values=-5), all_selector)]))
-
-    ])
-
-
-def impute_refused_idk_workaround():
+def impute_workaround():
     unique_val = np.random.uniform()
     return Pipeline(
         [
@@ -103,7 +80,7 @@ def impute_refused_idk_workaround():
 
 
 def process_data(df):
-    # replace all strings in dataset
+    # drop string valued columns
     df.drop(inplace=True, columns=(df.select_dtypes(
         exclude=['int64', 'float64']).columns))
     process_pipe = Pipeline(
@@ -117,17 +94,8 @@ def process_data(df):
             ])),
 
             ('drop_underfilled_columns', ColumnFilterTransfomer()),
-            ('average_impute_magic_numbers', impute_refused_idk_workaround())
+            ('average_impute_magic_numbers', impute_workaround())
         ]
     )
     res = process_pipe.fit_transform(df)
     return res
-
-
-res = process_data(NHANES_13_14)
-print(MISSING_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
-print(REFUSED_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
-print(IDK_MAGIC_NUM in dict(zip(*np.unique(res, return_counts=True))))
-print(res.shape)
-
-# print(res[:10])
