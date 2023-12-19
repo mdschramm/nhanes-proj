@@ -30,6 +30,9 @@ y_train = y[train_idx]
 X_test = X[test_idx]
 y_test = y[test_idx]
 
+# Mean Squared Error: 0.9227709616185261
+# R^2 Score: -0.0007543302727242018
+
 
 def test_lasso():
     lasso = Lasso(fit_intercept=True)
