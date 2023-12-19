@@ -3,7 +3,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer, MissingIndicator
-from dataload import NHANES_13_14, questionaire_to_questions_13_14, questionaire_to_questions_15_16, questionaire_to_questions_17_18
 
 
 REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (

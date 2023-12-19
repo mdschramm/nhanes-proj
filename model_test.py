@@ -6,7 +6,8 @@ from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier
 
-from sklearn.metrics import mean_squared_error, r2_score, accuracy_score
+from sklearn.metrics import mean_squared_error, r2_score, accuracy_score, recall_score, precision_score, f1_score
+from sklearn.model_selection import cross_val_score
 
 
 def drop_bad_y_rows(df, y_col, bad_values):
@@ -24,6 +25,7 @@ features = select_features(["ALQ_H", "CDQ_H", "HSQ_H", "DIQ_H",
                             "IMQ_H", "INQ_H", "MCQ_H", "PAQ_H", "DPQ_H", "SMQ_H", "SMQSHS_H"])
 # raw dataframe from nhanes
 data = NHANES_13_14.filter(list(features | set([y_col])))
+# data = NHANES_13_14.filter(list(features | set(['BPQ080']) | set([y_col])))
 data = drop_bad_y_rows(data, y_col,
                        bad_values=[7, 9, np.nan])
 
@@ -47,9 +49,15 @@ def test_model(model, params):
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
     acc = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
     print(f'Mean Squared Error: {mse}')
     print(f'R^2 Score: {r2}')
     print(f'accuracy: {acc}')
+    print(f'precision: {precision}')
+    print(f'recall: {recall}')
+    print(f'f1: {f1}')
 
 
 # Mean Squared Error: 0.9227709616185261
@@ -67,6 +75,9 @@ def test_model(model, params):
 # Mean Squared Error: 0.22213622291021673
 # R^2 Score: 0.005340736866106255
 # accuracy: 0.7778637770897833
-params = {'n_estimators': 100, 'learning_rate': .1,
-          'max_depth': 6}
-test_model(GradientBoostingClassifier, params)
+# params = {'n_estimators': 100, 'learning_rate': 1.0, 'max_depth': 1, }
+# test_model(GradientBoostingClassifier, params)
+
+# [0.65789474 0.6873065  0.63390093 0.64009288 0.68783888]
+print(cross_val_score(GradientBoostingClassifier(
+    **{'n_estimators': 100, 'learning_rate': 1.0, 'max_depth': 1, }), X, y, cv=5, scoring='accuracy'))
