@@ -1,6 +1,5 @@
 import numpy as np
-import pandas as pd
-from functools import reduce
+from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer, MissingIndicator
@@ -94,7 +93,8 @@ def process_data(df):
 
             ('drop_underfilled_columns', ColumnFilterTransfomer()),
             # TODO should only be run on training data
-            ('average_impute_magic_numbers', impute_workaround())
+            ('average_impute_magic_numbers', impute_workaround()),
+            ('scaling', StandardScaler())
         ]
     )
     res = process_pipe.fit_transform(df)
