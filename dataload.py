@@ -80,7 +80,27 @@ columns_df1 = set(NHANES_13_14.columns)
 columns_df2 = set(NHANES_15_16.columns)
 columns_df3 = set(NHANES_17_18.columns)
 
-common_columns = list(columns_df1 & columns_df2 & columns_df3)
-NHANES_13_14 = NHANES_13_14[common_columns]
-NHANES_15_16 = NHANES_15_16[common_columns]
-NHANES_17_18 = NHANES_17_18[common_columns]
+common_columns = columns_df1 & columns_df2 & columns_df3
+NHANES_13_14 = NHANES_13_14[list(common_columns)]
+NHANES_15_16 = NHANES_15_16[list(common_columns)]
+NHANES_17_18 = NHANES_17_18[list(common_columns)]
+assert (len(NHANES_13_14.columns) == len(NHANES_15_16.columns))
+assert (len(NHANES_13_14.columns) == len(NHANES_17_18.columns))
+
+# maps for feature selection
+questionaire_to_questions_13_14 = dict(zip(questionnaire_codes_13_14, map(
+    lambda df: set(df.columns) & common_columns, frames_13_14)))
+
+questionaire_to_questions_15_16 = dict(zip(questionnaire_codes_15_16, map(
+    lambda df: set(df.columns) & common_columns, frames_15_16)))
+
+questionaire_to_questions_17_18 = dict(zip(questionnaire_codes_17_18, map(
+    lambda df: set(df.columns) & common_columns, frames_17_18)))
+
+
+def select_features(features, feature_map=questionaire_to_questions_13_14):
+    # for 13
+    all_features = set()
+    for f in features:
+        all_features = all_features | feature_map[f]
+    return all_features

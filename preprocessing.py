@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from functools import reduce
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer
+from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.impute import SimpleImputer, MissingIndicator
 from dataload import NHANES_13_14, questionaire_to_questions_13_14, questionaire_to_questions_15_16, questionaire_to_questions_17_18
 
@@ -13,22 +13,16 @@ REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (
 # Adds indicators for all refused, idk, and missing columns
 
 
-def missing_indicator_transformer(df):
-    refused_values = [7, 77, 777, 7777, 77777, 777777]
-    idk_values = [9, 99, 999, 9999, 99999, 999999]
-
-    df.replace(refused_values, REFUSED_MAGIC_NUM, inplace=True)
-    df.replace(idk_values, IDK_MAGIC_NUM, inplace=True)
-    df.replace(np.nan, MISSING_MAGIC_NUM, inplace=True)
+def missing_indicator_transformer():
 
     return ColumnTransformer(
         [
             ('missing', MissingIndicator(
-                missing_values=MISSING_MAGIC_NUM, features='all'), df.columns),
+                missing_values=MISSING_MAGIC_NUM, features='all'), make_column_selector()),
             ('refused', MissingIndicator(
-                missing_values=REFUSED_MAGIC_NUM, features='all'), df.columns),
+                missing_values=REFUSED_MAGIC_NUM, features='all'), make_column_selector()),
             ('idk', MissingIndicator(
-             missing_values=IDK_MAGIC_NUM, features='all'), df.columns),
+             missing_values=IDK_MAGIC_NUM, features='all'), make_column_selector()),
         ]
     )
 
@@ -50,7 +44,6 @@ class ColumnFilterTransfomer():
             if n_bad > threshold:
                 remove_cols.append(i)
 
-        print('num columns to remove:', len(remove_cols))
         X = np.delete(X, remove_cols, axis=1)
         return X
 
@@ -80,40 +73,29 @@ def impute_workaround():
     )
 
 
-def select_features(df, features, feature_map=questionaire_to_questions_13_14):
-    # for 13
-    all_features = set()
-    for f in features:
-        all_features = all_features | feature_map[f]
-    return all_features
-
-
 def process_data(df):
-    # drop string valued columns
-    df.drop(inplace=True, columns=(df.select_dtypes(
+    df = df.drop(columns=(df.select_dtypes(
         exclude=['int64', 'float64']).columns))
+    refused_values = [7, 77, 777, 7777, 77777, 777777]
+    idk_values = [9, 99, 999, 9999, 99999, 999999]
 
-    features = select_features(df, ['ALQ_H', 'PAQ_H', 'SMQ_H'])
-    target = set(['DPQ030'])
+    df = df.replace(refused_values, REFUSED_MAGIC_NUM)
+    df = df.replace(idk_values, IDK_MAGIC_NUM)
+    df = df.replace(np.nan, MISSING_MAGIC_NUM)
 
-    df = df.filter(list(features | target))
-    print(df.columns)
     process_pipe = Pipeline(
         [
             # Adds missing indicators for refused, idk, and missing,
             # replaces each of those value types with a magic number for later processing
             ('missing_indicators', FeatureUnion([
                 ('existing_data', 'passthrough'),
-                ('missing_indicators', missing_indicator_transformer(
-                    df)),
+                ('missing_indicators', missing_indicator_transformer()),
             ])),
 
             ('drop_underfilled_columns', ColumnFilterTransfomer()),
+            # TODO should only be run on training data
             ('average_impute_magic_numbers', impute_workaround())
         ]
     )
     res = process_pipe.fit_transform(df)
     return res
-
-
-process_data(NHANES_13_14)
