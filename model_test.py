@@ -79,5 +79,9 @@ def test_model(model, params):
 # test_model(GradientBoostingClassifier, params)
 
 # [0.65789474 0.6873065  0.63390093 0.64009288 0.68783888]
-print(cross_val_score(GradientBoostingClassifier(
-    **{'n_estimators': 100, 'learning_rate': 1.0, 'max_depth': 1, }), X, y, cv=5, scoring='accuracy'))
+# print(cross_val_score(GradientBoostingClassifier(
+#     **{'n_estimators': 100, 'learning_rate': 1.0, 'max_depth': 1, }), X, y, cv=5, scoring='accuracy'))
+
+# [0.75696594 0.76315789 0.75928793 0.78328173 0.77381875]
+print(cross_val_score(LogisticRegression(
+    **{'max_iter': 500}), X, y, cv=5, scoring='accuracy'))
