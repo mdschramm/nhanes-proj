@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import FunctionTransformer
+from functools import reduce
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer, MissingIndicator
+from dataload import NHANES_13_14, questionaire_to_questions_13_14, questionaire_to_questions_15_16, questionaire_to_questions_17_18
 
 
 REFUSED_MAGIC_NUM, IDK_MAGIC_NUM, MISSING_MAGIC_NUM = (
@@ -79,10 +80,24 @@ def impute_workaround():
     )
 
 
+def select_features(df, features, feature_map=questionaire_to_questions_13_14):
+    # for 13
+    all_features = set()
+    for f in features:
+        all_features = all_features | feature_map[f]
+    return all_features
+
+
 def process_data(df):
     # drop string valued columns
     df.drop(inplace=True, columns=(df.select_dtypes(
         exclude=['int64', 'float64']).columns))
+
+    features = select_features(df, ['ALQ_H', 'PAQ_H', 'SMQ_H'])
+    target = set(['DPQ030'])
+
+    df = df.filter(list(features | target))
+    print(df.columns)
     process_pipe = Pipeline(
         [
             # Adds missing indicators for refused, idk, and missing,
@@ -99,3 +114,6 @@ def process_data(df):
     )
     res = process_pipe.fit_transform(df)
     return res
+
+
+process_data(NHANES_13_14)
